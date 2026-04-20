@@ -1,124 +1,138 @@
 % ============================================================
 % Family Tree Program in Prolog
+% Author: [Your Name]
+% Date:   [Date]
+%
+% This program models my fictional family tree using Prolog
+% facts and rules. It can answer questions about who is
+% related to whom through logical inference and recursion.
 % ============================================================
-% This program defines family relationships using facts and
-% rules, and supports queries using logical inference and
-% recursion.
-% ============================================================
 
 % ------------------------------------------------------------
-% 1. Basic Facts: Gender
+% Gender Facts
+% I picked names that felt realistic and easy to follow.
 % ------------------------------------------------------------
-male(john).
-male(james).
-male(robert).
-male(william).
-male(david).
-male(michael).
-male(daniel).
+male(tom).
+male(jack).
+male(alex).
+male(ben).
+male(luke).
+male(noah).
+male(ryan).
 
-female(mary).
-female(susan).
-female(linda).
-female(elizabeth).
-female(sarah).
-female(emily).
-female(jessica).
-
-% ------------------------------------------------------------
-% 2. Basic Facts: Parent Relationships
-% ------------------------------------------------------------
-% Generation 1 (Grandparents)
-%   John + Mary -> James, Susan
-%   Robert + Linda -> William, Elizabeth
-
-parent(john, james).
-parent(john, susan).
-parent(mary, james).
-parent(mary, susan).
-
-parent(robert, william).
-parent(robert, elizabeth).
-parent(linda, william).
-parent(linda, elizabeth).
-
-% Generation 2 (Parents)
-%   James + Elizabeth -> David, Sarah
-%   William + Susan -> Michael, Emily
-
-parent(james, david).
-parent(james, sarah).
-parent(elizabeth, david).
-parent(elizabeth, sarah).
-
-parent(william, michael).
-parent(william, emily).
-parent(susan, michael).
-parent(susan, emily).
-
-% Generation 3
-%   David + Jessica -> Daniel
-parent(david, daniel).
-parent(jessica, daniel).
+female(anna).
+female(sophie).
+female(kate).
+female(lisa).
+female(emma).
+female(olivia).
+female(mia).
 
 % ------------------------------------------------------------
-% 3. Derived Relationships Using Rules
+% Parent Relationships
+%
+% Here is how the family tree is structured:
+%
+%   Generation 1 (Grandparents):
+%       Tom + Anna  -->  Jack, Sophie
+%       Ben + Kate  -->  Alex, Lisa
+%
+%   Generation 2 (Parents):
+%       Jack + Lisa   -->  Luke, Emma
+%       Alex + Sophie -->  Noah, Olivia
+%
+%   Generation 3 (Youngest):
+%       Luke + Mia  -->  Ryan
+%
+% I set it up so that Jack married Lisa and Alex married
+% Sophie, which creates the cousin links I needed to test.
 % ------------------------------------------------------------
 
-% Father: X is the father of Y if X is male and X is a parent of Y.
+% Tom and Anna are parents of Jack and Sophie
+parent(tom, jack).
+parent(tom, sophie).
+parent(anna, jack).
+parent(anna, sophie).
+
+% Ben and Kate are parents of Alex and Lisa
+parent(ben, alex).
+parent(ben, lisa).
+parent(kate, alex).
+parent(kate, lisa).
+
+% Jack and Lisa are parents of Luke and Emma
+parent(jack, luke).
+parent(jack, emma).
+parent(lisa, luke).
+parent(lisa, emma).
+
+% Alex and Sophie are parents of Noah and Olivia
+parent(alex, noah).
+parent(alex, olivia).
+parent(sophie, noah).
+parent(sophie, olivia).
+
+% Luke and Mia are parents of Ryan
+parent(luke, ryan).
+parent(mia, ryan).
+
+% ------------------------------------------------------------
+% Derived Relationships
+% These rules let Prolog figure out connections that I did
+% not have to state explicitly as facts.
+% ------------------------------------------------------------
+
+% A father is a male parent.
 father(X, Y) :- male(X), parent(X, Y).
 
-% Mother: X is the mother of Y if X is female and X is a parent of Y.
+% A mother is a female parent.
 mother(X, Y) :- female(X), parent(X, Y).
 
-% Child: X is a child of Y if Y is a parent of X.
+% X is a child of Y if Y is a parent of X.
 child(X, Y) :- parent(Y, X).
 
-% Son: X is a son of Y if X is male and Y is a parent of X.
+% Sons and daughters
 son(X, Y) :- male(X), parent(Y, X).
-
-% Daughter: X is a daughter of Y if X is female and Y is a parent of X.
 daughter(X, Y) :- female(X), parent(Y, X).
 
-% Grandparent: X is a grandparent of Y if X is a parent of Z
-% and Z is a parent of Y (recursive chain of two parent links).
+% Grandparent — just chain two parent links together.
 grandparent(X, Y) :- parent(X, Z), parent(Z, Y).
 
-% Grandfather: X is a grandfather of Y.
+% More specific versions
 grandfather(X, Y) :- male(X), grandparent(X, Y).
-
-% Grandmother: X is a grandmother of Y.
 grandmother(X, Y) :- female(X), grandparent(X, Y).
 
-% Sibling: X and Y are siblings if they share the same parent
-% and are not the same person.
+% Siblings share at least one parent.
+% The X \= Y part stops Prolog from saying someone
+% is their own sibling, which tripped me up at first.
 sibling(X, Y) :- parent(Z, X), parent(Z, Y), X \= Y.
 
-% Brother: X is a brother of Y.
+% Brother and sister
 brother(X, Y) :- male(X), sibling(X, Y).
-
-% Sister: X is a sister of Y.
 sister(X, Y) :- female(X), sibling(X, Y).
 
-% Uncle: X is an uncle of Y if X is the brother of a parent of Y.
+% Uncle and aunt — a sibling of your parent.
 uncle(X, Y) :- brother(X, Z), parent(Z, Y).
-
-% Aunt: X is an aunt of Y if X is the sister of a parent of Y.
 aunt(X, Y) :- sister(X, Z), parent(Z, Y).
 
-% Cousin: X and Y are cousins if their parents are siblings.
+% Cousins — their parents are siblings.
+% This was my favorite rule to write because it
+% builds cleanly on the sibling rule.
 cousin(X, Y) :- parent(A, X), parent(B, Y), sibling(A, B).
 
 % ------------------------------------------------------------
-% 4. Recursive Rules: Ancestor and Descendant
+% Recursive Rules
+%
+% These let Prolog walk up or down the tree to any depth.
+% The base case has to come first, otherwise Prolog can
+% get stuck in an infinite loop.
 % ------------------------------------------------------------
 
-% Base case: X is an ancestor of Y if X is a parent of Y.
+% Base case: a parent is an ancestor.
 ancestor(X, Y) :- parent(X, Y).
 
-% Recursive case: X is an ancestor of Y if X is a parent of Z
-% and Z is an ancestor of Y.
+% Recursive case: a parent of an ancestor is also an ancestor.
 ancestor(X, Y) :- parent(X, Z), ancestor(Z, Y).
 
-% Descendant: X is a descendant of Y if Y is an ancestor of X.
+% Descendant is just ancestor flipped around.
 descendant(X, Y) :- ancestor(Y, X).
